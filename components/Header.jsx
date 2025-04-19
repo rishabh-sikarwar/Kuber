@@ -1,4 +1,3 @@
-"use client";
 import React from "react";
 import {
   SignInButton,
@@ -11,8 +10,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "./ui/button";
 import { LayoutDashboard, PenBox } from "lucide-react";
+import { checkUser } from "@/lib/checkUser";
 
-const Header = () => {
+const Header = async () => {
+   await checkUser();
   return (
     <div className="flex justify-center items-center p-4 gap-4 h-16 fixed top-0 bg-white/80 backdrop-blur-xs z-50 border-b mt-3 w-full ">
       <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -35,23 +36,28 @@ const Header = () => {
             </SignInButton>
           </SignedOut>
           <SignedIn>
-            <Link href="/dashboard" className="text-gray-600 hover:text-blue-600 flex items-center gap-2">
+            <Link
+              href="/dashboard"
+              className="text-gray-600 hover:text-blue-600 flex items-center gap-2"
+            >
               <Button variant="outline">
                 <LayoutDashboard size={18} />
                 <span className="hidden md:inline">Dashboard</span>
               </Button>
             </Link>
             <Link href="/transaction/create">
-              <Button variant="outline" className='flex items-center gap-2'>
+              <Button variant="outline" className="flex items-center gap-2">
                 <PenBox size={18} />
                 <span className="hidden md:inline">Add Transactions</span>
               </Button>
             </Link>
-            <UserButton appearance={{
-              elements: {
-                avatarBox: "h-10 w-10",
-              }
-            }} />
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: "h-10 w-10",
+                },
+              }}
+            />
           </SignedIn>
         </div>
       </nav>
