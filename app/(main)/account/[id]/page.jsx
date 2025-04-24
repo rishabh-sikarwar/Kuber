@@ -3,13 +3,24 @@ import { notFound } from "next/navigation";
 import React, { Suspense } from "react";
 import TransactionTable from "../_components/transaction-table";
 import { BarLoader } from "react-spinners";
+import AccountChart from "../_components/account-chart";
 
-const AccountsPage = async ({params}) => { //We can get the params from context and then id from params.id
+const AccountsPage = async ({params , searchParams}) => { //We can get the params from context and then id from params.id
   const {id} = await params
-  const accountData = await getAccountWithTransactions(id)
-  if (!accountData) notFound()
+  const page = parseInt((await searchParams).page || "1")
+  const limit = 10
+
+  const paginatedData = await getAccountWithTransactions(id, page, limit)
+  const fullData = await getAccountWithTransactions(id, null, null)
   
-  const {transactions , ...account} = accountData
+  if(!paginatedData) notFound()
+
+  
+  const { transactions, totalTransactions, ...account } = paginatedData
+  const fullTransactions = fullData.transactions
+  
+  const totalPages = Math.ceil(totalTransactions / limit)
+  
 
   return (
     <div className="space-y-8 px-5">
@@ -34,12 +45,22 @@ const AccountsPage = async ({params}) => { //We can get the params from context 
       </div>
 
       {/* Chart Section */}
+       <Suspense
+        fallback={<BarLoader width={"100%"} color="#36d399" className="mt-4" />}
+      >
+        <AccountChart transactions={fullTransactions} /> 
+      </Suspense>   
 
       {/* Transaction Table  */}
       <Suspense
         fallback={<BarLoader width={"100%"} color="#36d399" className="mt-4" />}
       >
-        <TransactionTable transactions={transactions} />
+        <TransactionTable
+          transactions={transactions}
+          currentPage={page}
+          totalPages={totalPages}
+          accountId={id}
+        />
       </Suspense>
     </div>
   );

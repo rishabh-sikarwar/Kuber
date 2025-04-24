@@ -51,9 +51,12 @@ export async function updateDefaultAccouunt(accountId) {
   }
 }
 
-export async function getAccountWithTransactions(accountId) {
+export async function getAccountWithTransactions(accountId, page=1, limit=10) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+
+  const skip = limit ? (page - 1) * limit : undefined
+  const take = limit || undefined
 
   const user = await db.user.findUnique({
     where: {
@@ -72,6 +75,8 @@ export async function getAccountWithTransactions(accountId) {
     include: {
       transactions: {
         orderBy: { date: "desc" },
+        skip,
+        take,
       },
       _count: {
         select: { transactions: true },
@@ -83,8 +88,10 @@ export async function getAccountWithTransactions(accountId) {
   return {
     ...serializeTransaction(account),
     transactions: account.transactions.map(serializeTransaction),
+    totalTransactions: account._count.transactions,
   };
 }
+
 
 export async function bulkDeleteTransactions(transactionIds) {
   try {

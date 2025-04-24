@@ -39,6 +39,8 @@ import {
 import { format, set } from "date-fns";
 import {
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   Clock,
   MoreHorizontal,
@@ -47,6 +49,7 @@ import {
   Trash,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import { BarLoader } from "react-spinners";
@@ -59,7 +62,7 @@ const RECURRING_INTERVALS = {
   YEARLY: "Yearly",
 };
 
-const TransactionTable = ({ transactions }) => {
+const TransactionTable = ({ transactions, currentPage, totalPages, accountId }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [recurringFilter, setRecurringFilter] = useState("");
@@ -425,6 +428,69 @@ const TransactionTable = ({ transactions }) => {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Pagination controls */}
+      <div className="flex items-center justify-center gap-2  mt-4">
+        {currentPage > 1 && (
+          <div className="flex gap-2">
+            <Link
+              href={`/account/${accountId}?page=1`}
+              className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+            >
+              Start
+            </Link>
+            <Link
+              href={`/account/${accountId}?page=${currentPage - 1}`}
+              className="px-3 py-1 rounded hover:bg-gray-200"
+            >
+              <ChevronLeft/>
+            </Link>
+          </div>
+        )}
+
+        {[...Array(5)].map((_, i) => {
+          const offset = i - 2;
+          const page = currentPage + offset;
+          if (page < 1 || page > totalPages) return null;
+
+          const distance = Math.abs(offset);
+          let fontSize = "text-sm";
+          if (distance === 0) fontSize = "text-lg font-bold";
+          else if (distance === 1) fontSize = "text-base";
+          // else keep text-sm for distance === 2  which is default as provided
+
+          const colorClass =
+            distance === 0 ? "bg-purple-600 text-white" :
+              distance === 1 ? "bg-purple-100 text-purple-800" : "bg-gray-100 text-gray-800";
+          
+          return (
+            <Link
+              key={page}
+              href={`/account/${accountId}?page=${page}`}
+              className={`px-3 py-1 rounded ${colorClass} ${fontSize} transition-all duration-200 hover:bg-gray-300 rounded-full`}
+            >
+              {page}
+            </Link>
+          )
+
+        })}
+        {currentPage < totalPages && (
+          <div className="flex gap-2">
+            <Link
+              href={`/account/${accountId}?page=${currentPage + 1}`}
+              className="px-3 py-1 rounded hover:bg-gray-200"
+            >
+              <ChevronRight className="" />
+            </Link>
+            <Link
+              href={`/account/${accountId}?page=${totalPages}`}
+              className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+            >
+              End
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
