@@ -1,11 +1,15 @@
 "use client";
-import { createTransaction } from "@/actions/transaction";
+import { createTransaction, updateTransaction } from "@/actions/transaction";
 import { transactionSchema } from "@/app/lib/schema";
 import CreateAccountDrawer from "@/components/create-account-drawer";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -24,6 +28,7 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { number } from "zod";
+import ReciptScanner from "./recipt-scanner";
 
 const AddTransactionForm = ({
   accounts,
@@ -45,35 +50,51 @@ const AddTransactionForm = ({
     reset,
   } = useForm({
     resolver: zodResolver(transactionSchema),
-    defaultValues: {
-      type: "EXPENSE",
-      amount: "",
-      description: "",
-      accountId: accounts.find((ac) => ac.isDefault)?.id,
-      date: new Date(),
-      isRecurring: false,
-    },
+    defaultValues:
+      editMode && initialData
+        ? {
+            type: initialData.type,
+            amount: initialData.amount.toString(),
+            description: initialData.description,
+            accountId: initialData.accountId,
+            category: initialData.category,
+            date: new Date(initialData.date),
+            isRecurring: initialData.isRecurring,
+            ...(initialData.recurringInterval && {
+              recurringInterval: initialData.recurringInterval,
+            }),
+          }
+        : {
+            type: "EXPENSE",
+            amount: "",
+            description: "",
+            accountId: accounts.find((ac) => ac.isDefault)?.id,
+            date: new Date(),
+            isRecurring: false,
+          },
   });
 
   const {
     loading: transactionLoading,
     fn: transactionFn,
     data: transactionResult,
-  } = useFetch(createTransaction);
+  } = useFetch(editMode ? updateTransaction : createTransaction);
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     const formData = {
       ...data,
       amount: parseFloat(data.amount),
     };
-      if (editMode) {
-        transactionFn(editId, formData);
-      } else {
-        transactionFn(formData);
-      }
+    const headers = {
+      "user-agent": navigator.userAgent,
+    };
+
+    if (editMode) {
+      await transactionFn(editId, formData, headers);
+    } else {
+      await transactionFn(formData, headers);
+    }
   };
-
-
 
   useEffect(() => {
     if (transactionResult && !transactionLoading) {
@@ -95,9 +116,23 @@ const AddTransactionForm = ({
     (category) => category.type === type
   );
 
+  const handleScanComplete = (scannedData) => {
+    if (scannedData) {
+      setValue("amount", scannedData.amount.toString());
+      setValue("date", new Date(scannedData.date));
+      if (scannedData.description) {
+        setValue("description", scannedData.description);
+      }
+      if (scannedData.category) {
+        setValue("category", scannedData.category);
+      }
+    }
+  };
+
   return (
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
       {/* AI Recipt Scanner */}
+      {!editMode &&<ReciptScanner onScanComplete={handleScanComplete} />}
 
       <div className="space-y-2">
         <label className="text-sm font-medium"> Type</label>
@@ -195,7 +230,7 @@ const AddTransactionForm = ({
                   !date && "text-muted-foreground"
                 )}
               >
-                {date ? format(date, "PPP") : <spam>Pick a date</spam>}
+                {date ? format(date, "PPP") : <Spam>Pick a date</Spam>}
                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
               </Button>
             </PopoverTrigger>
@@ -263,7 +298,6 @@ const AddTransactionForm = ({
             </Select>
             {errors.recurringInterval && (
               <p className="text-sm text-red-500">
-
                 {errors.recurringInterval.message}
               </p>
             )}
@@ -276,8 +310,10 @@ const AddTransactionForm = ({
             type="button"
             variant={"outline"}
             className="w-full"
-            onClick={()=>router.back()}
-          >Cancel</Button>
+            onClick={() => router.back()}
+          >
+            Cancel
+          </Button>
           <Button
             type="submit"
             className={"w-full"}
@@ -289,14 +325,12 @@ const AddTransactionForm = ({
                 {editMode ? "Updating..." : "Creating..."}
               </>
             ) : editMode ? (
-                "Update Transaction"
-              ) : (
-                  "Create Transaction"
-            )
-          }
+              "Update Transaction"
+            ) : (
+              "Create Transaction"
+            )}
           </Button>
         </div>
-
       </div>
     </form>
   );
