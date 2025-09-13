@@ -10,8 +10,8 @@ const serializeTransaction = (obj) => {
     serialized.balance = obj.balance.toNumber();
   }
 
-  if (obj.ammount) {
-    serialized.ammount = obj.ammount.toNumber();
+  if (obj.amount) {
+    serialized.amount = obj.amount.toNumber();
     }
     return serialized
 };
